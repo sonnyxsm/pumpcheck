@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+import sys
+import argparse
+import requests
+import time
+import datetime
+
+def sendwebhook(api, title, body, color, footer, avatar, thumb):
+    params = {
+            'embeds': [{
+                    'title': title,
+                    'description': body,
+                    'color': color,
+                    'footer': {
+                        'text': footer
+                    },
+                    'thumbnail': {
+                        'url': thumb
+                    }
+            }],
+            'avatar_url': avatar
+    }
+    recv = requests.post(api, json = params)
+    recv.raise_for_status()
+
+def getpricedata(crypto):
+    api = 'https://api.coingecko.com/api/v3/coins/{}'.format(crypto)
+    dataparse = []
+
+    params = { 
+              'id': crypto, 
+              'include_tickers': 'true',
+              'include_market_data': 'true',
+              'include_community_data': 'false',
+              'include_developer_data': 'false',
+              'sparkline': 'false'
+    }
+    recv = requests.get(api, params = params)
+    if recv.status_code == 200:
+        data = recv.json()
+        dataparse.append(data['market_data']['current_price']['usd'])
+        dataparse.append(data['market_data']['price_change_percentage_1h_in_currency']['usd'])
+        dataparse.append(data['market_data']['price_change_percentage_24h_in_currency']['usd'])
+        dataparse.append(data['market_data']['high_24h']['usd'])
+        dataparse.append(data['market_data']['low_24h']['usd'])
+        dataparse.append(data['image']['small'])
+        return dataparse
+    else:
+        dataparse = 0
+        return
+
+def updatewebhook(discordapi, crypto, avatar):
+    timestamp = datetime.datetime.now()
+    pricedata = getpricedata(crypto)
+
+    currentprice = pricedata[0]
+    since1h = pricedata[1]
+    since24h = pricedata[2]
+    high24h = pricedata[3]
+    low24h = pricedata[4]
+    image = pricedata[5]
+    
+
+    if len(pricedata) < 4:
+        print('pumpcheck: warning: price data not accquired, not sending...')
+        return
+    
+    if -0.10 <= since1h <= 0.10:
+        print('pumpcheck: warning: price change too low, not sending...')
+        return
+
+    if since1h < 0.0:
+        isup1h = "▼"
+    elif since1h > 0.0:
+        isup1h = "▲"
+    else:
+        isup1h = "."
+
+    if since24h < 0.0:
+        pricecolor = 16753571
+        isup24h = "▼"
+    elif since24h > 0.0:
+        pricecolor = 11665315
+        isup24h = "▲"
+    else:
+        pricecolor = 16777215
+        isup24h = "."
+
+    formattime = timestamp.strftime("%m/%d/%Y, %H:%M:%S")
+    formathead = "**${}**"
+    formatbody = 'CURRENT PRICE: **${} USD**\n\n1H CHANGE: **{}{}%**\n24H CHANGE: **{}{}%**\n\n24H HIGH: **${} USD**\n24H LOW: **${} USD**\n'
+    sendwebhook(str(discordapi), str(formathead).format(crypto).upper(), str(formatbody).format(currentprice, isup1h, round(since1h, 2), isup24h, round(since24h, 2), high24h, low24h).upper(), int(pricecolor), '@ {} UTC'.format(formattime), str(avatar), image) 
+    
+    print('pumpcheck: info: sent a webhook @ {}...'.format(formattime))
+    
+def main():
+    parse = argparse.ArgumentParser(description='broadcasts the price of a shitcoin to a discord webhook.')
+    parse.add_argument('-t', '--ticker', help='gets the price of the ticker in USD.')
+    parse.add_argument('-w', '--webhook', help='discord webhook to broadcast to.')
+    parse.add_argument('-a', '--avatar', help='set the discord webhook avatar.')
+    args = parse.parse_args()
+    
+    while True: 
+        if not args.ticker and args.webhook:
+            print('pumpcheck: error: no arguments provided.')
+            return -1
+        updatewebhook(args.webhook, args.ticker, args.avatar)
+        time.sleep(60) # HARDCODED TO PREVENT SPAM OR RATE LIMITS
+    return 0
+
+if __name__ == "__main__":
+    main()
