@@ -94,10 +94,10 @@ def updatewebhook(discordapi, crypto, avatar):
     print('pumpcheck: info: sent a webhook @ {}...'.format(formattime))
     
 def main():
-    parse = argparse.ArgumentParser(description='broadcasts the price of a shitcoin to a discord webhook.')
+    parse = argparse.ArgumentParser(description='broadcast coingecko coins to discord channel')
     parse.add_argument('-t', '--ticker', help='gets the price of the ticker in USD.')
     parse.add_argument('-w', '--webhook', help='discord webhook to broadcast to.')
-    parse.add_argument('-a', '--avatar', help='set the discord webhook avatar.')
+    parse.add_argument('-a', '--avatar', help='set the discord Webhook avatar.')
     args = parse.parse_args()
     
     while True: 
