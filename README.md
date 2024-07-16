@@ -1,7 +1,8 @@
 # pumpcheck
 
-Get Crypto Announcements on Your Discord Server.
-**pumpcheck** Sends a Discord Webhook from CoinGecko's API.
+Get Crypto Announcements on Your Discord Server
+
+**pumpcheck** Sends a Discord Webhook from CoinGecko's API
 
 ## Running
 
